@@ -29,7 +29,7 @@ Instead of using paid third-party SMS services (like Twilio or Firebase), this p
 
 # 🏗️ Tech Stack & Architecture
 
-- **Frontend:** React.js (Vite)
+- **Frontend:** NEXT.js + Tailwind CSS for a simple, responsive web interface
 - **Backend:** Node.js + Express.js REST API
 - **Database:** MongoDB with Mongoose ODM
 - **Authentication:** JWT + OTP Verification
