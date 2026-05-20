@@ -1,4 +1,4 @@
-const User = require('../users/user.model'); 
+const User = require('../users/user.model');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
@@ -15,27 +15,37 @@ exports.sendOTP = async (req, res, next) => {
     try {
         let { phone, name } = req.body;
 
-        if (!phone) {
-            return res.status(400).json({ success: false, message: "Phone number dena zaroori hai bhai!" });
+        if (!phone || !name) {
+            return res.status(400).json({ success: false, message: "Naam aur Phone number dono dena zaroori hai !" });
         }
 
-        // Clean phone formatting (removes spaces, dashes)
+        // Clean phone and name formatting (Lowercase + Trimmed)
         phone = phone.replace(/\s+/g, '');
+        const processedName = name.trim().toLowerCase(); 
 
-        // 6-Digit Cryto-safe alternative or fast random generation
+        // 6-Digit random OTP generation
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiryTime = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes valid
 
-        // Find or create user atomicity check
+        // Find user by phone number
         let user = await User.findOne({ phone });
 
         if (user) {
+            // 🚨 MASTER LOGIC CHECK: Agar number registered hai, toh naam match hona chahiye!
+            if (user.name.trim().toLowerCase() !== processedName) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Yeh mobile number kisi aur naam se registered hai ! Sahi naam daalo." 
+                });
+            }
+            // Naam sahi hai -> Update OTP for existing user
             user.otp = generatedOtp;
             user.otpExpiresAt = expiryTime;
         } else {
+            // Number naya hai -> Create brand new account with processed name
             user = new User({
                 phone,
-                name: name || 'Cloud User',
+                name: processedName, // Always stored clean & uniform
                 otp: generatedOtp,
                 otpExpiresAt: expiryTime
             });
@@ -111,10 +121,16 @@ exports.verifyOTP = async (req, res, next) => {
         // 4. Generate Login Token
         const token = generateToken(user._id);
 
+        res.cookie('jts_cloud_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000 
+        });
+
         return res.status(200).json({
             success: true,
             message: "Authentication successful! Welcome to JTS-Cloud 🚀",
-            token,
             user: {
                 id: user._id,
                 name: user.name,
@@ -129,7 +145,3 @@ exports.verifyOTP = async (req, res, next) => {
         next(error);
     }
 };
-
-// Temporary fallbacks for backward compatibility
-exports.register = (req, res) => res.status(200).json({ msg: "Registration completely moved to OTP pipeline!" });
-exports.login = (req, res) => res.status(200).json({ msg: "Login completely moved to OTP pipeline!" });

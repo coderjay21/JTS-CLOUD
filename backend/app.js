@@ -4,15 +4,19 @@ const app = express();
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 const authRoutes = require('./modules/auth/auth.routes'); 
+
+// Middleware for parsing cookies
+app.use(cookieParser());
 
 // 1. Security Profiling
 app.use(helmet());
 
 // 2. Cross-Origin-Resource-Sharing
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000', 
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true
 }));
 
